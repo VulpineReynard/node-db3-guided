@@ -4,7 +4,8 @@ const db = require('../data/db-config.js');
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
+router.route("/")
+.get((req, res) => {
   db('users')
   .then(users => {
     res.json(users);
@@ -12,9 +13,21 @@ router.get('/', (req, res) => {
   .catch (err => {
     res.status(500).json({ message: 'Failed to get users' });
   });
+})
+.post((req, res) => {
+  const userData = req.body;
+
+  db('users').insert(userData)
+  .then(ids => {
+    res.status(201).json({ created: ids[0] });
+  })
+  .catch(err => {
+    res.status(500).json({ message: 'Failed to create new user' });
+  });
 });
 
-router.get('/:id', (req, res) => {
+router.route("/:id")
+.get((req, res) => {
   const { id } = req.params;
 
   db('users').where({ id })
@@ -30,21 +43,8 @@ router.get('/:id', (req, res) => {
   .catch(err => {
     res.status(500).json({ message: 'Failed to get user' });
   });
-});
-
-router.post('/', (req, res) => {
-  const userData = req.body;
-
-  db('users').insert(userData)
-  .then(ids => {
-    res.status(201).json({ created: ids[0] });
-  })
-  .catch(err => {
-    res.status(500).json({ message: 'Failed to create new user' });
-  });
-});
-
-router.put('/:id', (req, res) => {
+})
+.put((req, res) => {
   const { id } = req.params;
   const changes = req.body;
 
@@ -59,9 +59,8 @@ router.put('/:id', (req, res) => {
   .catch(err => {
     res.status(500).json({ message: 'Failed to update user' });
   });
-});
-
-router.delete('/:id', (req, res) => {
+})
+.delete((req, res) => {
   const { id } = req.params;
 
   db('users').where({ id }).del()
@@ -76,5 +75,19 @@ router.delete('/:id', (req, res) => {
     res.status(500).json({ message: 'Failed to delete user' });
   });
 });
+
+router.route("/:id/posts")
+.get((req, res) => {
+
+  const { id } = req.params;
+  db('posts as p')
+  .join('users as u', 'u.id', '=', 'p.user_id')
+  .where({ user_id: id })
+  .then(posts => res.status(200).send(posts))
+  .catch(err => res.sendStatus(err));
+
+})
+
+// posts table, each record has a user_id
 
 module.exports = router;
